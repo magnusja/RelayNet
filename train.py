@@ -1,7 +1,6 @@
 import argparse
 
 import torch
-import torch.nn as nn
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -10,6 +9,7 @@ from tqdm import trange
 
 
 from data_utils import get_imdb_data
+from loss import WeightedClassificationLoss, TotalLoss
 from relaynet import RelayNet
 
 
@@ -21,14 +21,15 @@ def train(epoch, data, net, criterion, optimizer, args):
 
     net.train()
     for img, label, label_bin, weight in progress_bar:
-        img, label, weight = Variable(img), Variable(label), Variable(weight)
+        img, label, label_bin, weight = Variable(img), Variable(label), Variable(label_bin), Variable(weight)
         label = label.type(torch.LongTensor)
+        label_bin = label_bin.type(torch.FloatTensor)
 
         if args.cuda:
-            img, label, weight = img.cuda(), label.cuda(), weight.cuda()
+            img, label, label_bin, weight = img.cuda(), label.cuda(), label_bin.cuda(), weight.cuda()
 
         output = net(img)
-        loss = criterion(output, label)
+        loss = criterion(output, label, weight, label_bin)
         net.zero_grad()
         loss.backward()
         optimizer.step()
@@ -75,7 +76,7 @@ def main():
     if args.cuda:
         relay_net = relay_net.cuda()
 
-    criterion = nn.NLLLoss(size_average=True)
+    criterion = TotalLoss()
     optimizer = optim.Adam(relay_net.parameters(), lr=0.003)
 
     train_data, valid_data = get_imdb_data()
