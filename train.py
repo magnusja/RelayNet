@@ -9,7 +9,7 @@ from tqdm import trange
 
 
 from data_utils import get_imdb_data
-from loss import WeightedClassificationLoss, TotalLoss
+from loss import TotalLoss, dice_coeff
 from relaynet import RelayNet
 
 
@@ -39,8 +39,11 @@ def train(epoch, data, net, criterion, optimizer, args):
         else:
             moving_loss = moving_loss * 0.9 + loss.item() * 0.1
 
+        dice_avg = torch.mean(dice_coeff(output, label_bin))
+
         progress_bar.set_description(
-            'Epoch: {}; Loss: {:.5f}; Avg: {:.5f}'.format(epoch + 1, loss.item(), moving_loss))
+            'Epoch: {}; Loss: {:.5f}; Avg: {:.5f}; Dice: {:.5f}'
+                .format(epoch + 1, loss.item(), moving_loss, dice_avg.item()))
 
 
 def valid(data, squeeze_net, args):
@@ -77,7 +80,7 @@ def main():
         relay_net = relay_net.cuda()
 
     criterion = TotalLoss()
-    optimizer = optim.Adam(relay_net.parameters(), lr=0.003)
+    optimizer = optim.Adam(relay_net.parameters(), lr=0.001, weight_decay=0.0001)
 
     train_data, valid_data = get_imdb_data()
 
