@@ -35,12 +35,12 @@ def train(epoch, data, net, criterion, optimizer, args):
         optimizer.step()
 
         if moving_loss == 0:
-            moving_loss = loss.data[0]
+            moving_loss = loss.item()
         else:
-            moving_loss = moving_loss * 0.9 + loss.data[0] * 0.1
+            moving_loss = moving_loss * 0.9 + loss.item() * 0.1
 
         progress_bar.set_description(
-            'Epoch: {}; Loss: {:.5f}; Avg: {:.5f}'.format(epoch + 1, loss.data[0], moving_loss))
+            'Epoch: {}; Loss: {:.5f}; Avg: {:.5f}'.format(epoch + 1, loss.item(), moving_loss))
 
 
 def valid(data, squeeze_net, args):

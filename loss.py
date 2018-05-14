@@ -1,18 +1,15 @@
 import torch.nn as nn
 import torch
-from torch.autograd import Variable
 
 
 class DiceLoss(nn.Module):
     def forward(self, output, target_bin):
-        if output.is_cuda:
-            loss = Variable(torch.FloatTensor(1).cuda().zero_())
-        else:
-            loss = Variable(torch.FloatTensor(1).zero_())
-
-        loss += 2 * torch.sum(output * target_bin) / (torch.sum(output ** 2) + torch.sum(target_bin ** 2))
-
-        return (1 - loss) / (output.size()[0] + 1)
+        batch_size = output.size()[0]
+        upper = (output * target_bin).view(batch_size, 10, -1).sum(dim=-1)
+        lower = (output ** 2).view(batch_size, 10, -1).sum(dim=-1) \
+            + (target_bin ** 2).view(batch_size, 10, -1).sum(dim=-1)
+        loss = 2 * upper / lower
+        return torch.mean(1 - loss)
 
 
 class WeightedClassificationLoss(nn.Module):
