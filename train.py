@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import torch
 import numpy as np
@@ -75,12 +76,14 @@ def parse_args():
     parser.add_argument('--epochs', action='store', type=int, dest='epochs', default=90)
     parser.add_argument('--cuda', action='store', type=bool, dest='cuda', default=True)
     parser.add_argument('--validation', action='store', type=bool, dest='validation', default=False)
+    parser.add_argument('--model-checkpoint-dir', action='store', type=str, default='./models')
 
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    os.makedirs(args.model_checkpoint_dir, exist_ok=True)
 
     relay_net = RelayNet()
     if args.cuda:
@@ -97,6 +100,8 @@ def main():
         train(epoch, train_data, relay_net, criterion, optimizer, args)
         if args.validation:
             valid(valid_data, relay_net, args)
+
+        torch.save(relay_net.state_dict(), os.path.join(args.model_checkpoint_dir, 'model-{}.model'.format(epoch)))
 
 
 if __name__ == '__main__':
