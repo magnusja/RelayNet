@@ -4,7 +4,7 @@ import numpy as np
 
 
 class BasicBlock(nn.Module):
-    def __init__(self, num_input_channels=1, kernel=(3, 7), stride=1, num_output_channels=64):
+    def __init__(self, num_input_channels=1, kernel=(3, 7), stride=1, num_output_channels=64, dropout_prob=0.3):
         super().__init__()
         padding = (np.asarray(kernel) - 1) / 2
         padding = tuple(padding.astype(np.int))
@@ -18,14 +18,18 @@ class BasicBlock(nn.Module):
             nn.PReLU()
         )
 
+        if dropout_prob > 0:
+            self.model.add_module(str(len(self.model)), nn.Dropout2d(dropout_prob))
+
     def forward(self, input):
         return self.model(input)
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, num_input_channels=1, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64):
+    def __init__(self, num_input_channels=1, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64,
+                 dropout_prob=0.3):
         super().__init__()
-        self.basic = BasicBlock(num_input_channels, kernel, stride_conv, num_output_channels)
+        self.basic = BasicBlock(num_input_channels, kernel, stride_conv, num_output_channels, dropout_prob)
         self.pool = nn.MaxPool2d(kernel, stride_pool, return_indices=True)
 
     def forward(self, input):
@@ -35,9 +39,10 @@ class EncoderBlock(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, num_input_channels=64, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64):
+    def __init__(self, num_input_channels=64, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64,
+                 dropout_prob=0.3):
         super().__init__()
-        self.basic = BasicBlock(num_input_channels * 2, kernel, stride_conv, num_output_channels)
+        self.basic = BasicBlock(num_input_channels * 2, kernel, stride_conv, num_output_channels, dropout_prob)
         self.unpool = nn.MaxUnpool2d(kernel, stride_pool)
 
     def forward(self, input, indices, encoder_block):
@@ -60,14 +65,14 @@ class ClassifierBlock(nn.Module):
 
 class RelayNet(nn.Module):
     def __init__(self, num_input_channels=1, kernel=(3, 3), stride_conv=1, stride_pool=2, num_output_channels=64,
-                 num_encoders=3, num_classes=10, kernel_classify=(1, 1)):
+                 num_encoders=3, num_classes=10, kernel_classify=(1, 1), dropout_prob=0.3):
         super().__init__()
         self.encoders = nn.ModuleList([EncoderBlock(num_input_channels if i == 0 else num_output_channels, kernel,
-                                                    stride_conv, stride_pool, num_output_channels)
+                                                    stride_conv, stride_pool, num_output_channels, dropout_prob)
                                        for i in range(num_encoders)])
-        self.bottleneck = BasicBlock(num_output_channels, kernel, stride_conv, num_output_channels)
+        self.bottleneck = BasicBlock(num_output_channels, kernel, stride_conv, num_output_channels, dropout_prob)
         self.decoders = nn.ModuleList(
-            [DecoderBlock(num_output_channels, kernel, stride_conv, stride_pool, num_output_channels)
+            [DecoderBlock(num_output_channels, kernel, stride_conv, stride_pool, num_output_channels, dropout_prob)
              for _ in range(num_encoders)])
         self.classify = ClassifierBlock(num_output_channels, kernel_classify, stride_conv, num_classes)
 
