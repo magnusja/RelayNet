@@ -90,3 +90,15 @@ class RelayNet(nn.Module):
             out = decoder(out, encoded[1], encoded[2])
 
         return self.classify(out)
+
+    def train(self, mode=True):
+        super().train(mode)
+
+        # to do MC dropout we would like to keep dropout also during evaluation
+        for module in self.modules():
+            if 'dropout' in  module.__class__.__name__.lower():
+                module.train(False)
+                print(module)
+
+    def predict(self):
+        pass
