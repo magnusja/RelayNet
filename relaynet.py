@@ -98,7 +98,12 @@ class RelayNet(nn.Module):
         for module in self.modules():
             if 'dropout' in  module.__class__.__name__.lower():
                 module.train(False)
-                print(module)
 
-    def predict(self):
-        pass
+    def predict(self, input, times=10):
+        self.eval()
+        results = list()
+        for _ in range(times):
+            out = self.forward(input)
+            results.append(out.data.cpu().numpy())
+
+        return results
