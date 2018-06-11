@@ -106,9 +106,9 @@ class RelayNet(nn.Module):
             out = self.forward(input)
             results.append(out.data.cpu().numpy())
 
-        results = np.asarray(results, dtype=np.float)
+        results = np.asarray(results, dtype=np.float).squeeze()
         average = results.mean(axis=0)
-        variance = results.var(axis=0)
-        entropy = -np.sum(results * np.log(results), axis=0)
+        per_class_entropy = -np.sum(results * np.log(results), axis=0)
+        overall_entropy = -np.sum(results * np.log(results), axis=(0, 1))
 
-        return average, variance, entropy
+        return average, per_class_entropy, overall_entropy
