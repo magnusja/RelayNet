@@ -12,7 +12,7 @@ from tqdm import trange
 
 from data_utils import get_imdb_data
 from loss import TotalLoss, dice_coeff
-from relaynet import RelayNet
+from relaynet import RelayNet, DenseBlock, BasicBlock
 
 
 def train(epoch, data, net, criterion, optimizer, args):
@@ -75,8 +75,9 @@ def parse_args():
     parser.add_argument('--batch-size', action='store', type=int, dest='batch_size', default=8)
     parser.add_argument('--epochs', action='store', type=int, dest='epochs', default=90)
     parser.add_argument('--cuda', action='store', type=bool, dest='cuda', default=True)
-    parser.add_argument('--validation', action='store', type=bool, dest='validation', default=False)
+    parser.add_argument('--validation', action='store_true', dest='validation', default=False)
     parser.add_argument('--model-checkpoint-dir', action='store', type=str, default='./models')
+    parser.add_argument('--use-dense-connections', action='store_true', dest='dense', default=False)
 
     return parser.parse_args()
 
@@ -85,7 +86,7 @@ def main():
     args = parse_args()
     os.makedirs(args.model_checkpoint_dir, exist_ok=True)
 
-    relay_net = RelayNet()
+    relay_net = RelayNet(basic_block=DenseBlock if args.dense else BasicBlock)
     if args.cuda:
         relay_net = relay_net.cuda()
 

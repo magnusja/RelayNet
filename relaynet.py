@@ -25,11 +25,30 @@ class BasicBlock(nn.Module):
         return self.model(input)
 
 
+class DenseBlock(nn.Module):
+    def __init__(self, num_input_channels=1, kernel=(3, 7), stride=1, num_output_channels=64, dropout_prob=0.3):
+        super().__init__()
+        self.dense_modules = nn.ModuleList([
+            BasicBlock(num_input_channels, kernel, stride, num_output_channels, dropout_prob),
+            BasicBlock(num_input_channels + num_output_channels, kernel, stride, num_output_channels, dropout_prob),
+            BasicBlock(num_input_channels + 2 * num_output_channels, (1, 1), stride, num_output_channels, dropout_prob)
+        ])
+
+    def forward(self, input):
+        outputs = []
+        for module in self.dense_modules:
+            input_cat = torch.cat([input] + outputs, dim=1)
+            output = module(input_cat)
+            outputs.append(output)
+
+        return outputs[-1]
+
+
 class EncoderBlock(nn.Module):
     def __init__(self, num_input_channels=1, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64,
-                 dropout_prob=0.3):
+                 dropout_prob=0.3, basic_block=BasicBlock):
         super().__init__()
-        self.basic = BasicBlock(num_input_channels, kernel, stride_conv, num_output_channels, dropout_prob)
+        self.basic = basic_block(num_input_channels, kernel, stride_conv, num_output_channels, dropout_prob)
         self.pool = nn.MaxPool2d(kernel, stride_pool, return_indices=True)
 
     def forward(self, input):
@@ -40,9 +59,9 @@ class EncoderBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
     def __init__(self, num_input_channels=64, kernel=(3, 7), stride_conv=1, stride_pool=2, num_output_channels=64,
-                 dropout_prob=0.3):
+                 dropout_prob=0.3, basic_block=BasicBlock):
         super().__init__()
-        self.basic = BasicBlock(num_input_channels * 2, kernel, stride_conv, num_output_channels, dropout_prob)
+        self.basic = basic_block(num_input_channels * 2, kernel, stride_conv, num_output_channels, dropout_prob)
         self.unpool = nn.MaxUnpool2d(kernel, stride_pool)
 
     def forward(self, input, indices, encoder_block):
@@ -65,12 +84,12 @@ class ClassifierBlock(nn.Module):
 
 class RelayNet(nn.Module):
     def __init__(self, num_input_channels=1, kernel=(3, 3), stride_conv=1, stride_pool=2, num_output_channels=64,
-                 num_encoders=3, num_classes=10, kernel_classify=(1, 1), dropout_prob=0.3):
+                 num_encoders=3, num_classes=10, kernel_classify=(1, 1), dropout_prob=0.3, basic_block=BasicBlock):
         super().__init__()
         self.encoders = nn.ModuleList([EncoderBlock(num_input_channels if i == 0 else num_output_channels, kernel,
                                                     stride_conv, stride_pool, num_output_channels, dropout_prob)
                                        for i in range(num_encoders)])
-        self.bottleneck = BasicBlock(num_output_channels, kernel, stride_conv, num_output_channels, dropout_prob)
+        self.bottleneck = basic_block(num_output_channels, kernel, stride_conv, num_output_channels, dropout_prob)
         self.decoders = nn.ModuleList(
             [DecoderBlock(num_output_channels, kernel, stride_conv, stride_pool, num_output_channels, dropout_prob)
              for _ in range(num_encoders)])
