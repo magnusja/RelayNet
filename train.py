@@ -98,6 +98,7 @@ def main():
     os.makedirs(args.model_checkpoint_dir, exist_ok=True)
 
     relay_net = RelayNet(basic_block=DenseBlock if args.dense else BasicBlock, dropout_prob=args.dropout_prob)
+    print(relay_net)
     if args.cuda:
         relay_net = relay_net.cuda()
 

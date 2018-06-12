@@ -87,11 +87,13 @@ class RelayNet(nn.Module):
                  num_encoders=3, num_classes=10, kernel_classify=(1, 1), dropout_prob=0.3, basic_block=BasicBlock):
         super().__init__()
         self.encoders = nn.ModuleList([EncoderBlock(num_input_channels if i == 0 else num_output_channels, kernel,
-                                                    stride_conv, stride_pool, num_output_channels, dropout_prob)
+                                                    stride_conv, stride_pool, num_output_channels, dropout_prob,
+                                                    basic_block)
                                        for i in range(num_encoders)])
         self.bottleneck = basic_block(num_output_channels, kernel, stride_conv, num_output_channels, dropout_prob)
         self.decoders = nn.ModuleList(
-            [DecoderBlock(num_output_channels, kernel, stride_conv, stride_pool, num_output_channels, dropout_prob)
+            [DecoderBlock(num_output_channels, kernel, stride_conv, stride_pool, num_output_channels, dropout_prob,
+                          basic_block)
              for _ in range(num_encoders)])
         self.classify = ClassifierBlock(num_output_channels, kernel_classify, stride_conv, num_classes)
 
