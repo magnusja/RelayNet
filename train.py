@@ -1,5 +1,6 @@
 import argparse
 import os
+import multiprocessing
 
 import torch
 import numpy as np
@@ -16,7 +17,7 @@ from relaynet import RelayNet, DenseBlock, BasicBlock
 
 
 def train(epoch, data, net, criterion, optimizer, args):
-    train_set = DataLoader(data, batch_size=args.batch_size, num_workers=0, shuffle=True)
+    train_set = DataLoader(data, batch_size=args.batch_size, num_workers=multiprocessing.cpu_count(), shuffle=True)
 
     progress_bar = tqdm(iter(train_set))
     moving_loss = 0
@@ -48,8 +49,8 @@ def train(epoch, data, net, criterion, optimizer, args):
                 .format(epoch + 1, loss.item(), moving_loss, dice_avg.item()))
 
 
-def valid(data, net, args):
-    valid_set = DataLoader(data, batch_size=args.batch_size, num_workers=0, shuffle=True)
+def valid(data, net, args, mc_samples=1):
+    valid_set = DataLoader(data, batch_size=args.batch_size, num_workers=multiprocessing.cpu_count(), shuffle=True)
     net.eval()
 
     progress_bar = tqdm(iter(valid_set))
@@ -60,9 +61,17 @@ def valid(data, net, args):
         label_bin = label_bin.type(torch.FloatTensor)
 
         if args.cuda:
-            img, label_bin= img.cuda(), label_bin.cuda()
+            img, label_bin = img.cuda(), label_bin.cuda()
 
-        output = net(img)
+        if mc_samples > 1:
+            # lol this is insanely inefficient
+            avg, _, _ = net.predict(img, times=mc_samples)
+            output = Variable(torch.Tensor(avg))
+            if args.cuda:
+                output = output.cuda()
+        else:
+            output = net(img)
+
         dice_avg.append(torch.mean(dice_coeff(output, label_bin)).item())
 
     dice_avg = np.asarray(dice_avg).mean()
@@ -78,15 +87,17 @@ def parse_args():
     parser.add_argument('--validation', action='store_true', dest='validation', default=False)
     parser.add_argument('--model-checkpoint-dir', action='store', type=str, default='./models')
     parser.add_argument('--use-dense-connections', action='store_true', dest='dense', default=False)
+    parser.add_argument('--dropout-prob', action='store', type=float, default=0.3)
 
     return parser.parse_args()
 
 
 def main():
+    print('number of cpus used for loading data: {}'.format(multiprocessing.cpu_count()))
     args = parse_args()
     os.makedirs(args.model_checkpoint_dir, exist_ok=True)
 
-    relay_net = RelayNet(basic_block=DenseBlock if args.dense else BasicBlock)
+    relay_net = RelayNet(basic_block=DenseBlock if args.dense else BasicBlock, dropout_prob=args.dropout_prob)
     if args.cuda:
         relay_net = relay_net.cuda()
 
