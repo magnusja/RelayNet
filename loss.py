@@ -2,11 +2,11 @@ import torch.nn as nn
 import torch
 
 
-def dice_coeff(output, target_bin):
+def dice_coeff(output, target_bin, n_classes=10):
     batch_size = output.size()[0]
-    upper = (output * target_bin).view(batch_size, 10, -1).sum(dim=-1)
-    lower = (output ** 2).view(batch_size, 10, -1).sum(dim=-1) \
-        + (target_bin ** 2).view(batch_size, 10, -1).sum(dim=-1)
+    upper = (output * target_bin).view(batch_size, n_classes, -1).sum(dim=-1)
+    lower = (output ** 2).view(batch_size, n_classes, -1).sum(dim=-1) \
+        + (target_bin ** 2).view(batch_size, n_classes, -1).sum(dim=-1)
     return 2 * upper / lower
 
 
