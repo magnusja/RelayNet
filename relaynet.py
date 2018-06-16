@@ -84,7 +84,7 @@ class ClassifierBlock(nn.Module):
 
 class RelayNet(nn.Module):
     def __init__(self, num_input_channels=1, kernel=(3, 3), stride_conv=1, stride_pool=2, num_output_channels=64,
-                 num_encoders=3, num_classes=10, kernel_classify=(1, 1), dropout_prob=0.3, basic_block=BasicBlock):
+                 num_encoders=3, num_classes=9, kernel_classify=(1, 1), dropout_prob=0.3, basic_block=BasicBlock):
         super().__init__()
         self.encoders = nn.ModuleList([EncoderBlock(num_input_channels if i == 0 else num_output_channels, kernel,
                                                     stride_conv, stride_pool, num_output_channels, dropout_prob,

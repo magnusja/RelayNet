@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 
-def dice_coeff(output, target_bin, n_classes=10):
+def dice_coeff(output, target_bin, n_classes=9):
     batch_size = output.size()[0]
     upper = (output * target_bin).view(batch_size, n_classes, -1).sum(dim=-1)
     lower = (output ** 2).view(batch_size, n_classes, -1).sum(dim=-1) \
@@ -19,12 +19,12 @@ class DiceLoss(nn.Module):
 class WeightedClassificationLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.criterion = nn.NLLLoss(size_average=True)
+        self.criterion = nn.NLLLoss(size_average=True, reduce=True)
 
     def forward(self, output, target, weight):
         loss = self.criterion(output, target)
-
-        return torch.mean(loss * weight)
+        # TODO use weight accordingly
+        return torch.mean(loss)
 
 
 class TotalLoss(nn.Module):

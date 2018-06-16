@@ -50,7 +50,7 @@ def train(epoch, data, net, criterion, optimizer, args):
 
 
 def valid(data, net, args, mc_samples=1):
-    valid_set = DataLoader(data, batch_size=args.batch_size, num_workers=multiprocessing.cpu_count(), shuffle=True)
+    valid_set = DataLoader(data, batch_size=args.batch_size // 2, num_workers=multiprocessing.cpu_count(), shuffle=True)
     net.eval()
 
     progress_bar = tqdm(iter(valid_set))
@@ -78,16 +78,18 @@ def valid(data, net, args, mc_samples=1):
 
     print('Validation dice avg: {}'.format(dice_avg))
 
+    return dice_avg
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train SqueezeNet with PyTorch.')
     parser.add_argument('--batch-size', action='store', type=int, dest='batch_size', default=8)
     parser.add_argument('--epochs', action='store', type=int, dest='epochs', default=90)
     parser.add_argument('--cuda', action='store', type=bool, dest='cuda', default=True)
-    parser.add_argument('--validation', action='store_true', dest='validation', default=False)
+    parser.add_argument('--validation', action='store_true', dest='validation', default=True)
     parser.add_argument('--model-checkpoint-dir', action='store', type=str, default='./models')
     parser.add_argument('--use-dense-connections', action='store_true', dest='dense', default=False)
-    parser.add_argument('--dropout-prob', action='store', type=float, default=0.3)
+    parser.add_argument('--dropout-prob', action='store', type=float, default=0.5)
 
     return parser.parse_args()
 
@@ -111,10 +113,24 @@ def main():
     for epoch in trange(args.epochs):
         scheduler.step(epoch)
         train(epoch, train_data, relay_net, criterion, optimizer, args)
-        if args.validation:
-            valid(valid_data, relay_net, args)
 
         torch.save(relay_net.state_dict(), os.path.join(args.model_checkpoint_dir, 'model-{}.model'.format(epoch)))
+
+    del criterion, optimizer, scheduler
+
+    if args.validation:
+        best = (-1, -1)
+        for epoch in trange(args.epochs):
+            relay_net.load_state_dict(torch.load(os.path.join(args.model_checkpoint_dir, 'model-{}.model'.format(epoch))))
+            if args.cuda:
+                relay_net = relay_net.cuda()
+            dice = valid(valid_data, relay_net, args)
+            _, best_dice = best
+
+            if dice > best_dice:
+                best = (epoch, dice)
+
+        print('Best model with epoch {} and dice {}'.format(*best))
 
 
 if __name__ == '__main__':

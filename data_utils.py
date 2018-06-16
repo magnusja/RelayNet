@@ -22,8 +22,13 @@ class ImdbData(data.Dataset):
 
         img = torch.from_numpy(img)
         label = torch.from_numpy(label)
+        label[label == 9] = 1
         label_bin = torch.from_numpy(label_bin)
+        label_bin[1] = label_bin[1] + label_bin[9]
+        label_bin = label_bin[:9]
         weight = torch.from_numpy(weight)
+        weight[1] = weight[1] + weight[9]
+        weight = weight[:9]
         return img, label, label_bin, weight
 
     def __len__(self):
