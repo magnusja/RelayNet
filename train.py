@@ -65,7 +65,7 @@ def valid(data, net, args, mc_samples=1):
 
         if mc_samples > 1:
             # lol this is insanely inefficient
-            avg, _, _ = net.predict(img, times=mc_samples)
+            avg, _, _, _ = net.predict(img, times=mc_samples)
             output = Variable(torch.Tensor(avg))
             if args.cuda:
                 output = output.cuda()
