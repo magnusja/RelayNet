@@ -1,11 +1,18 @@
 """Data utility functions."""
-import os
 
 import numpy as np
 import torch
 import torch.utils.data as data
 import h5py
 from scipy.io import loadmat
+
+
+def salt_and_pepper(img, prob, shape):
+    rnd = np.random.rand(*shape)
+    noisy = img[:]
+    noisy[rnd < prob/2] = 0.
+    noisy[rnd > 1 - prob/2] = 1.
+    return noisy
 
 
 class MatDataset(data.Dataset):
@@ -57,17 +64,20 @@ class MatDataset(data.Dataset):
         return img, label, label_bin, 0  # no weight available
 
 class ImdbData(data.Dataset):
-    def __init__(self, X, y, yb, w):
+    def __init__(self, X, y, yb, w, salt_pepper_noise_prob=0):
         self.X = X
         self.y = y
         self.yb = yb
         self.w = w
+        self.salt_pepper_noise_prob = salt_pepper_noise_prob
 
     def __getitem__(self, index):
         img = self.X[index]
         label = self.y[index]
         label_bin = self.yb[index]
         weight = self.w[index]
+        if self.salt_pepper_noise_prob > 0:
+            img = salt_and_pepper(img, self.salt_pepper_noise_prob, img.shape)
 
         img = torch.from_numpy(img)
         label = torch.from_numpy(label)

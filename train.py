@@ -56,6 +56,7 @@ def valid(data, net, args, mc_samples=1):
     progress_bar = tqdm(iter(valid_set))
 
     dice_avg = list()
+    entropy_avg = list()
     for img, label, label_bin, weight in progress_bar:
         img, label, label_bin, weight = Variable(img), Variable(label), Variable(label_bin), Variable(weight)
         label_bin = label_bin.type(torch.FloatTensor)
@@ -65,7 +66,8 @@ def valid(data, net, args, mc_samples=1):
 
         if mc_samples > 1:
             # lol this is insanely inefficient
-            avg, _, _, _ = net.predict(img, times=mc_samples)
+            avg, _, overall_entropy, _ = net.predict(img, times=mc_samples)
+            entropy_avg.append(np.mean(overall_entropy))
             output = Variable(torch.Tensor(avg))
             if args.cuda:
                 output = output.cuda()
@@ -75,10 +77,12 @@ def valid(data, net, args, mc_samples=1):
         dice_avg.append(torch.mean(dice_coeff(output, label_bin)).item())
 
     dice_avg = np.asarray(dice_avg).mean()
+    entropy_avg = np.asarray(entropy_avg).mean()
 
     print('Validation dice avg: {}'.format(dice_avg))
+    print('Validation entropy avg: {}'.format(entropy_avg))
 
-    return dice_avg
+    return dice_avg, entropy_avg
 
 
 def parse_args():
