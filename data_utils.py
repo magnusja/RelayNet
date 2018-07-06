@@ -5,7 +5,56 @@ import numpy as np
 import torch
 import torch.utils.data as data
 import h5py
+from scipy.io import loadmat
 
+
+class MatDataset(data.Dataset):
+    def __init__(self, path):
+        data = loadmat(path)
+        oct = data['volumedata']
+        annotations = data['O1']
+
+        oct = np.transpose(oct, (2, 1, 0))
+        oct = oct[:, 61 + 16:573, :]
+
+        sz = oct.shape
+        self.oct = oct.reshape([sz[0], 1, sz[1], sz[2]])
+
+        annotations = np.transpose(annotations, (2, 1, 0))
+        self.annotations = annotations[:, 61 + 16:573, :]
+
+    def convert_annotation(self, a):
+        a = a.astype(np.int)
+        label = np.zeros((a.shape[0], a.shape[0]))
+        last = list()
+        for i in range(a.shape[0]):
+            last.append(0)
+
+        for c in range(9):
+            for i in range(a.shape[0]):
+                if a[i, c] == 0:
+                    continue
+                label[i, last[i]:a[i, c]] = c
+                last[i] = a[i, c]
+
+        return label
+
+    def __len__(self):
+        return len(self.oct)
+
+    def __getitem__(self, item):
+        img = self.oct[item].astype(np.float32)
+        annotation = self.annotations[item]
+        label = self.convert_annotation(annotation)
+        label_bin = np.zeros((9, label.shape[0], label.shape[1]), dtype=np.int32)
+        i, j = np.mgrid[0:label.shape[0], 0:label.shape[1]]
+        label_bin[label.astype(np.int), i, j] = 1
+
+        img = torch.from_numpy(img)
+        label = torch.from_numpy(label)
+        label_bin = torch.from_numpy(label_bin)
+
+        return img, label, label_bin, 0  # no weight available
 
 class ImdbData(data.Dataset):
     def __init__(self, X, y, yb, w):
