@@ -129,7 +129,7 @@ class RelayNet(nn.Module):
 
         results = np.asarray(results, dtype=np.float)
         average = results.mean(axis=0).squeeze()
-        per_class_entropy = -np.sum(results * np.log(results + 1e-7), axis=0)
-        overall_entropy = -np.sum(results * np.log(results + 1e-7), axis=(0, 2))  # 1 is batch size
+        per_class_entropy = -np.sum(results * np.log(results + 1e-12), axis=0)
+        overall_entropy = -np.sum(results * np.log(results + 1e-12), axis=(0, 2))  # 1 is batch size
 
         return average, per_class_entropy / times, overall_entropy / times, results

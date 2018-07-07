@@ -53,6 +53,7 @@ class MatDataset(data.Dataset):
         img = self.oct[item].astype(np.float32)
         annotation = self.annotations[item]
         label = self.convert_annotation(annotation)
+        label += 1
         label_bin = np.zeros((9, label.shape[0], label.shape[1]), dtype=np.int32)
         i, j = np.mgrid[0:label.shape[0], 0:label.shape[1]]
         label_bin[label.astype(np.int), i, j] = 1
