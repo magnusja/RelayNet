@@ -128,7 +128,7 @@ def main():
             relay_net.load_state_dict(torch.load(os.path.join(args.model_checkpoint_dir, 'model-{}.model'.format(epoch))))
             if args.cuda:
                 relay_net = relay_net.cuda()
-            dice = valid(valid_data, relay_net, args)
+            dice, entropy = valid(valid_data, relay_net, args)
             _, best_dice = best
 
             if dice > best_dice:

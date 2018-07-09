@@ -62,7 +62,7 @@ class MatDataset(data.Dataset):
         label = torch.from_numpy(label)
         label_bin = torch.from_numpy(label_bin)
 
-        return img, label, label_bin, 0  # no weight available
+        return img, label, label_bin, 1  # no weight available
 
 class ImdbData(data.Dataset):
     def __init__(self, X, y, yb, w, salt_pepper_noise_prob=0):
